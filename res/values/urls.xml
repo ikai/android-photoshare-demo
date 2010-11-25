@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="upload_hostname">http://172.31.154.99:8888</string>
+    <string name="get_upload_url">/get_blobstore_url</string>
+    
+</resources>

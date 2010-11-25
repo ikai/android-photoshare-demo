@@ -2,5 +2,5 @@
 <resources>
     <string name="hello">Hello World, Main!</string>
     <string name="app_name">Android Photoshare</string>
-    <string name="upload_photo">Upload Photo</string>
+    <string name="upload_photo">Upload Photo!</string>
 </resources>

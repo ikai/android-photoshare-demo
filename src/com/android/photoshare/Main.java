@@ -1,11 +1,28 @@
 package com.android.photoshare;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Date;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.InputStreamBody;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -18,6 +35,8 @@ public class Main extends Activity {
     TextView text;
     ImageView image;
 
+    String uploadImageUrl;
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -26,6 +45,14 @@ public class Main extends Activity {
 	uploadButton = (Button) findViewById(R.id.upload_photo);
 	text = (TextView) findViewById(R.id.text_view);
 	image = (ImageView) findViewById(R.id.image_view);
+
+	String hostname = getResources().getString(R.string.upload_hostname);
+	String getBlobstoreUrl = hostname
+		+ getResources().getString(R.string.get_upload_url);
+
+	text.setText(getBlobstoreUrl);
+	uploadImageUrl = getUploadUrl(getBlobstoreUrl);
+	text.setText(uploadImageUrl);
     }
 
     public void selectPhoto(View view) {
@@ -46,7 +73,77 @@ public class Main extends Activity {
 		Uri selectedImage = data.getData();
 		text.setText(selectedImage.toString());
 		image.setImageURI(selectedImage);
+
+		uploadImage(selectedImage);
 	    }
+    }
+
+    // Need mime4j
+    // http://james.apache.org/download.cgi#Apache_Mime4J
+    // http://blog.tacticalnuclearstrike.com/2010/01/using-multipartentity-in-android-applications/
+    protected void uploadImage(Uri imageToUploadUri) {
+
+	text.setText(imageToUploadUri.getPath());
+	Log.d("Main", "Upload image: " + imageToUploadUri.toString());
+
+	ContentResolver resolver = getContentResolver();
+	String mimeType = resolver.getType(imageToUploadUri);
+
+	try {
+	    InputStream is = resolver.openInputStream(imageToUploadUri);
+	    DefaultHttpClient httpclient = new DefaultHttpClient();
+	    HttpPost httpPost = new HttpPost(uploadImageUrl);
+	    
+	    MultipartEntity mpEntity = new MultipartEntity();
+	    mpEntity.addPart("file", new InputStreamBody(is, mimeType, "lolcat.jpg"));
+	    
+	    httpPost.setEntity(mpEntity);
+	    HttpResponse response = httpclient.execute(httpPost);
+
+	} catch (FileNotFoundException e1) {
+	    e1.printStackTrace();
+	} catch (ClientProtocolException e) {
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+
+    }
+
+    protected String getUploadUrl(String getBlobstoreUrl) {
+	String uploadUrl = "";
+	URL url;
+	URLConnection connection;
+
+	try {
+	    url = new URL(getBlobstoreUrl);
+
+	    connection = url.openConnection();
+	    connection.connect();
+	    InputStream is = connection.getInputStream();
+	    BufferedReader reader = new BufferedReader(
+		    new InputStreamReader(is));
+	    StringBuilder sb = new StringBuilder();
+	    String line = null;
+	    while ((line = reader.readLine()) != null) {
+		sb.append(line); // We don't care to append a newline since this
+				 // will bork HTTPclient
+	    }
+	    is.close();
+	    String hostname = getResources()
+		    .getString(R.string.upload_hostname);
+
+	    uploadUrl = hostname + sb.toString();
+
+	} catch (MalformedURLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    // TODO Auto-generated catch block
+
+	    e.printStackTrace();
+	}
+	return uploadUrl;
     }
 
 }
