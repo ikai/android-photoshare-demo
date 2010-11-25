@@ -20,8 +20,10 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -73,15 +75,16 @@ public class Main extends Activity {
 		Uri selectedImage = data.getData();
 		text.setText(selectedImage.toString());
 		image.setImageURI(selectedImage);
-
-		uploadImage(selectedImage);
+		String filename = getFilenameFromURI(selectedImage);
+		
+		uploadImage(selectedImage, filename);
 	    }
     }
 
     // Need mime4j
     // http://james.apache.org/download.cgi#Apache_Mime4J
     // http://blog.tacticalnuclearstrike.com/2010/01/using-multipartentity-in-android-applications/
-    protected void uploadImage(Uri imageToUploadUri) {
+    protected void uploadImage(Uri imageToUploadUri, String filename) {
 
 	text.setText(imageToUploadUri.getPath());
 	Log.d("Main", "Upload image: " + imageToUploadUri.toString());
@@ -95,7 +98,7 @@ public class Main extends Activity {
 	    HttpPost httpPost = new HttpPost(uploadImageUrl);
 	    
 	    MultipartEntity mpEntity = new MultipartEntity();
-	    mpEntity.addPart("file", new InputStreamBody(is, mimeType, "lolcat.jpg"));
+	    mpEntity.addPart("file", new InputStreamBody(is, mimeType, filename));
 	    
 	    httpPost.setEntity(mpEntity);
 	    HttpResponse response = httpclient.execute(httpPost);
@@ -145,5 +148,15 @@ public class Main extends Activity {
 	}
 	return uploadUrl;
     }
+    
+    // Taken from here:
+    // 	http://stackoverflow.com/questions/3401579/android-get-filename-and-path-from-uri-from-mediastore
+    public String getFilenameFromURI(Uri contentUri) {
+        String[] proj = { MediaStore.Images.Media.DISPLAY_NAME };
+        Cursor cursor = managedQuery(contentUri, proj, null, null, null);
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
+    }    
 
 }
